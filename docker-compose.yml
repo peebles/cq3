@@ -1,0 +1,48 @@
+redis-data:
+  image: busybox
+  container_name: redis-data
+  volumes:
+    - /var/lib/redis
+  command: /bin/true
+
+redis:
+  image: tutum/redis
+  container_name: redis
+  restart: always
+  ports:
+    - "6379:6379"
+  volumes_from:
+    - redis-data
+  environment:
+    REDIS_PASS: "**None**"
+
+rabbit-data:
+  image: busybox
+  container_name: rabbit-data
+  volumes:
+    - /var/lib/rabbitmq
+  command: /bin/true
+
+rabbitmq:
+  build: .
+  dockerfile: Dockerfile.rabbitmq
+  container_name: rabbitmq
+  ports:
+    - "5672:5672"
+    - "15672:15672"
+  volumes_from:
+    - rabbit-data
+  environment:
+    RABBITMQ_DEFAULT_USER: admin
+    RABBITMQ_DEFAULT_PASS: secret
+    
+app:
+  build: .
+  dockerfile: Dockerfile.app
+  container_name: app
+  volumes:
+    - ".:/deploy"
+  links:
+    - redis
+    - rabbitmq
+  command: bash -c 'while true; do sleep 10; done'
