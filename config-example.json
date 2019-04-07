@@ -1,0 +1,52 @@
+{
+  "SQS": {
+    "class": "SQS",
+    "connection": {
+      "accessKeyId": "xxxxxxxxxxxxx",
+      "secretAccessKey": "yyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "region": "us-west-2"
+    },
+    "options": {
+      "visibilityTimeout": 30,
+      "waitTimeSeconds": 5,
+      "maxNumberOfMessages": 10,
+      "asyncRemove": false
+    }
+  },
+  "RabbitMQ": {
+    "class": "RabbitMQ",
+    "connection": {
+      "url": "amqp://admin:secret@rabbitmq"
+    },
+    "options": {
+      "producerConfirm": true,
+      "messageTtl": 259200000,
+      "expires": 604800000,
+      "qos": { "count": 1000, "global": false },
+      "autoDelete": true,
+      "autoAck": false
+    }
+  },
+  "RedisQ": {
+    "class": "RedisQ",
+    "connection": {
+      "port": 6379,
+      "host": "redis",
+      "options": {}
+    },
+    "options": {
+      "waitTimeSeconds": 5,
+      "expire": 60*60*24
+    }
+  },
+  "KafkaQ": {
+    "class": "KafkaQ",
+    "connection": {
+      "connectionString": "192.168.99.100:9092"
+    },
+    "options": {
+      "keyField": "deviceId",
+      "groupId": "kafka-test-group"
+    }
+  }
+}

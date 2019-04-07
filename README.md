@@ -183,6 +183,7 @@ message from the queue.
       "messageTtl": 259200000,
       "expires": 604800000,
 	  "autoDelete": true,
+      "autoAck": false,
       "qos": { "count": 100, "global": false }
     }
   }
@@ -198,6 +199,9 @@ that `qos.count` is per client, not global and is probably what you want.
 
 `autoDelete` is a different way of managing queue deletion.  It is set to false by default.  If set to true, queues
 will be deleted when the number of consumers drops to zero.
+
+Setting `autoAck` to true can lead to considerably better consumption rates, at the risk of possibly losing some messages due to failues.  
+See [this article](https://www.rabbitmq.com/confirms.html) for details.
 
 ## Testing
 
