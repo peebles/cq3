@@ -12,6 +12,7 @@ module.exports = function( config ) {
 
       let defaults = {
         producerConfirm: true,
+        autoAck: false,
       };
       this.options = Object.assign( {}, defaults, config.options );
       this.assertedQueues = {};
@@ -93,7 +94,7 @@ module.exports = function( config ) {
             }).catch((err) => {
               this.log.error( err );
             });
-          });
+          }, {noAck: this.options.autoAck});
         }).catch((err) => {
           throw( err );
         });
@@ -152,7 +153,7 @@ module.exports = function( config ) {
       }).then(() => {
         return this._assertQueue( this.cch, queue );
       }).then(() => {
-        return this.cch.get( queue, { noAck: false } );
+        return this.cch.get( queue, { noAck: this.options.autoAck } );
       }).then((msg) => {
         if ( msg === false ) return Promise.delay( this.options.waitTimeSeconds * 1000 ).then(() => {
           return null;
@@ -168,6 +169,7 @@ module.exports = function( config ) {
     }
 
     _remove( queue, handle ) {
+      if ( this.options.autoAck ) return Promise.resolve();
       return new Promise((resolve, reject) => {
         try {
           this.cch.ack( handle );
