@@ -15,9 +15,11 @@ module.exports = function( config ) {
         waitTimeSeconds: 5,
         maxNumberOfMessages: 1,
         attributes: [ 'All' ],
+        asyncRemove: false,  // set this to true if you want to fire-n-forget message removals.  Big performance boost.
       };
 
       this.options = Object.assign( {}, defaults, config.options );
+      this.urlCache = {}; // used to cache assertQueue
     }
 
     _connect() {
@@ -59,7 +61,11 @@ module.exports = function( config ) {
     }
 
     _assertQueue( client, queue ) {
-      return client.createQueue({ QueueName: queue }).promise();
+      if ( this.urlCache[queue] ) return Promise.resolve(this.urlCache[queue]);
+      return client.createQueue({ QueueName: queue }).promise().then((data) => {
+        this.urlCache[queue] = data.QueueUrl;
+        return data.QueueUrl;
+      });
     }
 
     _enqueue( queue, message ) {
@@ -67,8 +73,7 @@ module.exports = function( config ) {
         if ( ! this.pq ) return this._producer_connect();
       }).then(() => {
         return this._assertQueue( this.pq, queue );
-      }).then((data) => {
-        let url = data.QueueUrl;
+      }).then((url) => {
         return this.pq.sendMessage({ QueueUrl: url, MessageBody: JSON.stringify( message ), DelaySeconds: 0 }).promise();
       });
     }
@@ -79,8 +84,7 @@ module.exports = function( config ) {
         if ( ! this.cq ) return this._consumer_connect();
       }).then(() => {
         return this._assertQueue( this.cq, queue );
-      }).then((data) => {
-        let url = data.QueueUrl;
+      }).then((url) => {
         let opts = {
           QueueUrl: url,
           AttributeNames: this.options.attributes,
@@ -103,9 +107,14 @@ module.exports = function( config ) {
     _remove( queue, handle ) {
       return Promise.resolve().then(() => {
         return this._assertQueue( this.cq, queue );
-      }).then((data) => {
-        let url = data.QueueUrl;
-        return this.cq.deleteMessage({ QueueUrl: url, ReceiptHandle: handle}).promise();
+      }).then((url) => {
+        if ( this.options.asyncRemove ) {
+          this.cq.deleteMessage({ QueueUrl: url, ReceiptHandle: handle}).promise().then(() => {}).catch((err) => {throw(err)});
+          return;
+        }
+        else {
+          return this.cq.deleteMessage({ QueueUrl: url, ReceiptHandle: handle}).promise();
+        }
       });
     }
 
@@ -114,8 +123,7 @@ module.exports = function( config ) {
         if ( ! this.cq ) return this._consumer_connect();
       }).then(() => {
         return this._assertQueue( this.cq, queue );
-      }).then((data) => {
-        let url = data.QueueUrl;
+      }).then((url) => {
         return this.cq.getQueueAttributes({ QueueUrl: url, AttributeNames: [ 'ApproximateNumberOfMessages' ] }).promise();
       }).then((data) => {
         if ( data && data.Attributes && data.Attributes.ApproximateNumberOfMessages )
@@ -129,8 +137,7 @@ module.exports = function( config ) {
         if ( ! this.cq ) return this._consumer_connect();
       }).then(() => {
         return this._assertQueue( this.cq, queue );
-      }).then((data) => {
-        let url = data.QueueUrl;
+      }).then((url) => {
         return this.cq.deleteQueue({ QueueUrl: url }).promise();
       });
     }
