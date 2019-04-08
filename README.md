@@ -208,8 +208,11 @@ See [this article](https://www.rabbitmq.com/confirms.html) for details.
 You can do some testing here.  You can fire up a test environment on your development machine by
 executing `docker-compose up -d`.  This will get you a redis service and a rabbitmq service, and
 a container called "app" which you can "exec -it" into and run "push-test.js" and "pop-test.js".
-You can add kafka to the mix by running "sh ./launch-kafka.sh" and by editing your config.json to
-point the connectionString to the ip address of the machine running kafka ($DOCKER_HOST).
+
+### Kafka
+
+Use docker-compose-kafka.yml.  Once it is running, execute "sh ./launch-kafka.sh" to create the
+"topic" (queue) and specify the number of partitions (how many parallel consumers you will be running, max).
 
 The other queuer services require account credentials.
 

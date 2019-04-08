@@ -17,6 +17,7 @@ services:
       context: .
       dockerfile: Dockerfile.rabbitmq
     container_name: rabbitmq
+    restart: always
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -25,6 +26,25 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: admin
       RABBITMQ_DEFAULT_PASS: secret
+
+  zookeeper:
+    image: jplock/zookeeper:3.4.6
+    container_name: zookeeper
+    restart: always
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: ches/kafka
+    container_name: kafka
+    restart: always
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka-data:/data
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: 192.168.99.103
+      ZOOKEEPER_IP: zookeeper
     
   app:
     build:
@@ -38,3 +58,4 @@ services:
 volumes:
   redis-data:
   rabbit-data:
+  kafka-data:

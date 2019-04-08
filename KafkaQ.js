@@ -1,10 +1,25 @@
 const Promise = require( 'bluebird' );
-let Kafka = require('no-kafka');
-let Hashring = require( 'hashring' );
+const Kafka = require('no-kafka');
+const Hashring = require( 'hashring' );
+const util = require( 'util' );
 
 module.exports = function( config ) {
 
   let CloudQueue = require( './CloudQueue' )( config );
+
+  // producer partitioner.  map message keys to partition numbers, based on the number of available partitions.
+  let DefaultPartitioner = Kafka.DefaultPartitioner;
+  function MyPartitioner() {
+    DefaultPartitioner.apply(this, arguments);
+  }
+  util.inherits(MyPartitioner, DefaultPartitioner);
+  MyPartitioner.prototype.partition = function(topic, parts, message) {
+    if ( ! this.hashring ) {
+      this.hashring = new Hashring( parts.map( function( p ) { return p.partitionId.toString(); } ) );
+    }
+    let p = this.hashring.get( message.key );
+    return Number( p );
+  }
 
   class KafkaQ extends CloudQueue {
     constructor() {
@@ -12,19 +27,13 @@ module.exports = function( config ) {
       let defaults = {
       };
 
-      this.options = Object.assign( {}, defaults, config.options );
+      this.options = Object.assign( {}, defaults, config.connection, config.options );
     }
 
     _producer_connect() {
-      // producer partitioner.  map message keys to partition numbers, based on the number of available partitions.
-      const partitioner = ( topic, parts, message ) => {
-	if ( ! this.hashring )
-	  this.hashring = new Hashring( parts.map( function( p ) { return p.partitionId.toString(); } ) );
-	return Number( this.hashring.get( message.key ) );
-      }
       this.producer = new Kafka.Producer({
         ...this.options,
-        partitioner
+        partitioner: new MyPartitioner()
       });
       return this.producer.init();
     }
@@ -52,22 +61,28 @@ module.exports = function( config ) {
 	return Promise.each( messages, ( m ) => {
 	  let handle = {topic: topic, partition: partition, offset: m.offset, metadata: 'optional'};
 	  let message = JSON.parse( m.message.value.toString('utf8') );
-          return messageHandler({ handle: handle, msg: message }).then(() => {
+          return messageHandler(message).then(() => {
             return this.consumer.commitOffset( handle );
+          }).catch((err) => {
+            this.log.error( err );
           });
         });
       }
 
-      let strategies = [{
-	strategy: 'TestStrategy',
+      let strategies = {
+	strategy: new Kafka.WeightedRoundRobinAssignmentStrategy(),
 	subscriptions: [ queue ],
+        metadata: {
+          weight: 4
+        },
 	handler: dataHandler
-      }];
+      };
 
       this.consumer.init(strategies);
+      return Promise.resolve();
     }
     
   }
 
-  return new SQS();
+  return new KafkaQ();
 }
