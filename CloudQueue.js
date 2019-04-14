@@ -13,6 +13,7 @@ module.exports = function( config ) {
       this.producer = {
 	connect: this.producer_connect.bind(this),
 	send: this.producer_send.bind(this),
+        disconnect: this.producer_disconnect.bind(this),
       };
 
       this.consumer = {
@@ -42,6 +43,11 @@ module.exports = function( config ) {
 
     producer_send( queue, message ) {
       return this._enqueue( queue, message );
+    }
+
+
+    producer_disconnect() {
+      return this._producer_disconnect();
     }
     
     consumer_connect( queue, handler ) {
@@ -77,6 +83,10 @@ module.exports = function( config ) {
 
     _producer_connect( cb ) {
       throw( 'subclasses must override' );
+    }
+
+    _producer_disconnect( cb ) {
+      return Promise.resolve();
     }
 
     _consumer_connect( queue, cb ) {

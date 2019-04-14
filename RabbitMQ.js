@@ -56,6 +56,10 @@ module.exports = function( config ) {
       });
     }
 
+    _producer_disconnect() {
+      return this.pch.waitForConfirms();
+    }
+
     _consumer_connect( queue, messageHandler ) {
       return Promise.resolve().then(() => {
         return this._connect().then( q => this.cq = q );
