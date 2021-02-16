@@ -22,6 +22,7 @@ module.exports = function( config ) {
 
       let defaults = {
         waitTimeSeconds: 5,
+        maxNumberOfMessages: 5,
       };
       this.options = Object.assign( {}, defaults, config.options );
     }
@@ -101,32 +102,28 @@ module.exports = function( config ) {
       });
     }
 
-    _dequeue( queue ) {
-      let ctx = {};
-      return Promise.resolve().then(() => {
-        if ( ! this.cq ) return this._consumer_connect();
-      }).then(() => {
-        // get the top of the queue (a pointer to a messsage
-        return this.cq.rpopAsync(qKey(queue));
-      }).then((uuid) => {
-        // if there is nothing, then wait a little time
-        ctx.uuid = uuid;
-        if ( ! ctx.uuid ) return Promise.delay( this.options.waitTimeSeconds * 1000 ).then(() => {
-          return null;
-        });
-        else return this.cq.getAsync(ctx.uuid);
-      }).then((msg) => {
-        // if there was a message, delete it from redis
-        ctx.msg = msg;
-        if ( ctx.uuid ) return this.cq.delAsync(ctx.uuid);
-      }).then(() => {
-        // and return the result.  the client expects an array.
-        if ( ! ctx.msg ) return [];
-        else return [{
-          handle: null,
-          msg: JSON.parse(ctx.msg)
-        }];
-      });
+    async _dequeue(queue) {
+      if ( ! this.cq ) await this._consumer_connect();
+      let uids = [];
+      let messages = [];
+      let max = this.options.maxNumberOfMessages;
+      for(let i=0; i<max; i++) {
+        let uid = await this.cq.rpopAsync(qKey(queue));
+        if ( uid ) uids.push(uid);
+        else break;
+      }
+      if ( ! uids.length ) {
+        await Promise.delay( this.options.waitTimeSeconds * 1000 );
+        return [];
+      }
+      for(let i=0; i<uids.length; i++) {
+        let uid = uids[i];
+        // get the message
+        messages.push(await this.cq.getAsync(uid));
+        // and delete from the queue
+        await this.cq.delAsync(uid);
+      }
+      return messages.map(m => {return {handle: null, msg: JSON.parse(m)}});
     }
 
     _remove() {
