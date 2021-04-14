@@ -62,7 +62,7 @@ module.exports = function( config ) {
 
     _assertQueue( client, queue ) {
       if ( this.urlCache[queue] ) return Promise.resolve(this.urlCache[queue]);
-      return client.getQueueURL({ QueueName: queue }).promise().then((data) => {
+      return client.getQueueUrl({ QueueName: queue }).promise().then((data) => {
         if ( data && data.QueueUrl ) {
           this.urlCache[queue] = data.QueueUrl;
           return data.QueueUrl;
