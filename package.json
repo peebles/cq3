@@ -1,6 +1,6 @@
 {
   "name": "cq3",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Cloud Queue with multiple engines",
   "main": "index.js",
   "scripts": {

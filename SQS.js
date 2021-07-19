@@ -43,7 +43,7 @@ module.exports = function( config ) {
           }).mapSeries((message) => {
             let handle = message.handle;
             let msg = message.msg;
-            messageHandler(msg).then(() => {
+            return messageHandler(msg).then(() => {
               this._remove( queue, handle ).catch((err) => {
                 this.log.error( err );
               });
