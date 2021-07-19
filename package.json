@@ -30,7 +30,7 @@
     "bluebird": "^3.5.3",
     "hashring": "^3.2.0",
     "no-kafka": "^3.4.3",
-    "redis": "^2.8.0",
+    "redis": "^3.1.1",
     "shortid": "^2.2.14",
     "winston": "^2.4.4"
   },
