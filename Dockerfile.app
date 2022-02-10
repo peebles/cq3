@@ -1,3 +1,3 @@
-FROM node:8-slim
+FROM node:12-slim
 WORKDIR /deploy
 CMD bash

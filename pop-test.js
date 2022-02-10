@@ -1,6 +1,4 @@
 var config = require( './config' );
-var log = require( 'winston' );
-log.level = 'debug';
 
 function exit( err ) {
   if ( err ) console.trace( err );
@@ -14,7 +12,6 @@ if ( ! qConfig ) {
   process.exit(1);
 }
 
-qConfig.logger = log;
 var q = require( './index' )( qConfig );
 
 const handler = (msg) => {

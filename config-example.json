@@ -30,9 +30,10 @@
   "RedisQ": {
     "class": "RedisQ",
     "connection": {
-      "port": 6379,
-      "host": "redis",
-      "options": {}
+      "socket": {
+        "port": 6379,
+        "host": "redis"
+      }
     },
     "options": {
       "waitTimeSeconds": 5,

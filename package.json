@@ -1,6 +1,6 @@
 {
   "name": "cq3",
-  "version": "1.0.5",
+  "version": "2.0.0",
   "description": "Cloud Queue with multiple engines",
   "main": "index.js",
   "scripts": {
@@ -25,14 +25,13 @@
   },
   "homepage": "https://github.com/peebles/cq3#readme",
   "dependencies": {
-    "amqplib": "^0.5.2",
-    "aws-sdk": "^2.366.0",
-    "bluebird": "^3.5.3",
+    "amqplib": "^0.5.6",
+    "aws-sdk": "^2.1071.0",
+    "bluebird": "^3.7.2",
     "hashring": "^3.2.0",
     "no-kafka": "^3.4.3",
-    "redis": "^3.1.1",
-    "shortid": "^2.2.14",
-    "winston": "^2.4.4"
+    "redis": "^4.0.3",
+    "shortid": "^2.2.16"
   },
   "devDependencies": {
     "node-simple-script": "^1.0.1"
