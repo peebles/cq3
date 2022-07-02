@@ -30,13 +30,6 @@ which things are enqueued is not the order in which they are dequeued.  SQS is s
 when you don't really care about the strict ordering of messages.  RackQ, IronMQ and RabbitMQ are strict fifos.
 Redis emulates a strict fifo.  I am not sure if Azure is a strict fifo, but I don't think it is.
 
-Kafka is a little different than the other systems listed above.  With Kafka you must define a "keyField"
-that is present in every message, like a deviceId or a uuid.  All messages with the same value in their keyField
-will be handled in fifo order.  Messages with different keyFields are handled in parallel (out of order).  Also,
-if you are running multiple instances of a consumer and all instances shared the same "groupId", then messages
-with the same keyField will be handled by the same consumer instance every time.  For these reasons, Kafka
-is a great choice for IoT systems.
-
 ## Usage - Push Model (consumer)
 
 ```javascript
@@ -114,7 +107,7 @@ The object that you pass when creating a cloud queue looks like:
 }
 ```
 
-The class names supported as of this writing are; `SQS`, `RabbitMQ`, `KafkaQ` and `RedisQ`.
+The class names supported as of this writing are; `SQS`, `RabbitMQ`, and `RedisQ`.
 The `connection` object you pass depends on the class you choose.  See "config-example.json" for
 how the configuration should look for each class.
 
@@ -208,13 +201,6 @@ See [this article](https://www.rabbitmq.com/confirms.html) for details.
 You can do some testing here.  You can fire up a test environment on your development machine by
 executing `docker-compose up -d`.  This will get you a redis service and a rabbitmq service, and
 a container called "app" which you can "exec -it" into and run "push-test.js" and "pop-test.js".
-
-### Kafka
-
-Use docker-compose-kafka.yml.  Once it is running, execute "sh ./launch-kafka.sh" to create the
-"topic" (queue) and specify the number of partitions (how many parallel consumers you will be running, max).
-
-The other queuer services require account credentials.
 
 ### Testing Hints
 
