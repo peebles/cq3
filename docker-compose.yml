@@ -1,40 +1,30 @@
 version: "2"
 
 services:
-  redis:
+  cq3-redis:
     image: tutum/redis
-    container_name: redis
+    container_name: cq3-redis
     restart: always
     ports:
       - "6379:6379"
-    volumes:
-      - redis-data
     environment:
       REDIS_PASS: "**None**"
 
-  rabbitmq:
+  cq3-rabbitmq:
     build:
       context: .
       dockerfile: Dockerfile.rabbitmq
-    container_name: rabbitmq
+    container_name: cq3-rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
-    volumes:
-      - rabbit-data
     environment:
       RABBITMQ_DEFAULT_USER: admin
       RABBITMQ_DEFAULT_PASS: secret
-    
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile.app
-    container_name: app
-    volumes:
-      - ".:/deploy"
-    command: bash -c 'while true; do sleep 10; done'
 
-volumes:
-  redis-data:
-  rabbit-data:
+  cq3-sqs:
+    container_name: cq3-sqs
+    image: softwaremill/elasticmq-native
+    ports:
+      - "9324:9324"
+

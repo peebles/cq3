@@ -30,24 +30,12 @@
   "RedisQ": {
     "class": "RedisQ",
     "connection": {
-      "socket": {
-        "port": 6379,
-        "host": "redis"
-      }
+      "port": 6379,
+      "host": "redis"
     },
     "options": {
       "waitTimeSeconds": 5,
-      "expire": 60*60*24
-    }
-  },
-  "KafkaQ": {
-    "class": "KafkaQ",
-    "connection": {
-      "connectionString": "192.168.99.100:9092"
-    },
-    "options": {
-      "keyField": "deviceId",
-      "groupId": "kafka-test-group"
+      "expire": 86400
     }
   }
 }

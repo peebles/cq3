@@ -1,4 +1,3 @@
-const Promise = require( 'bluebird' );
 var config = require( './config' );
 
 function exit( err ) {

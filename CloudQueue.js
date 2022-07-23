@@ -78,6 +78,10 @@ module.exports = function (config) {
       return this._remove(queue, handle);
     }
 
+    delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
     _consumer_length(queue) {
       // implementation can override if its possible to return the number
       // of messages pending in a queue

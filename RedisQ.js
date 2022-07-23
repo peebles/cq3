@@ -1,5 +1,4 @@
-const Promise = require("bluebird");
-const redis = require("redis");
+const Redis = require("ioredis");
 const shortid = require("shortid");
 
 module.exports = function (config) {
@@ -24,27 +23,13 @@ module.exports = function (config) {
       this.options = Object.assign({}, defaults, config.options);
     }
 
-    _connect() {
-      this.q = redis.createClient(config.connection);
-
-      this.q.on("error", (err) => {
-        // this prevents the process from exiting and redis will retry to connect
-        this.log.warn(err.message);
-      });
-
-      this.q.on("reconnecting", (o) => {
-        this.log.debug(
-          `redis reconnecting: attempt: ${o.attempt}, delay: ${o.delay}`
-        );
-      });
-
-      return this.q.connect().then(() => {
-        return this.q;
-      });
+    async _connect() {
+      this.q = new Redis(config.connection);
+      return this.q;
     }
 
-    _producer_connect() {
-      return this._connect().then((q) => (this.pq = q));
+    async _producer_connect() {
+      this.pq = await this._connect();
     }
 
     // There are two models for message consumption; the client pulls, or the client is
@@ -52,66 +37,40 @@ module.exports = function (config) {
     // handler, which will be called when a message is available and is called with a single message
     // as an argument.
 
-    _consumer_connect(queue, messageHandler) {
-      return this._connect().then((q) => {
-        this.cq = q;
-        if (!queue) return q; // this is the pull model
-        // else this is the push model
-        const forever = () => {
-          Promise.resolve()
-            .then(() => {
-              return this._dequeue(queue);
-            })
-            .mapSeries((message) => {
-              let handle = message.handle;
-              let msg = message.msg;
-              return messageHandler(msg)
-                .then(() => {
-                  this._remove(queue, handle).catch((err) => {
-                    this.log.error(err);
-                  });
-                })
-                .catch((err) => {
-                  this.log.error(err);
-                });
-            })
-            .then(() => {
-              forever();
-            })
-            .catch((err) => {
-              this.log.error(err);
-            });
-        };
-        forever();
-      });
+    async _consumer_connect(queue, messageHandler) {
+      let q = await this._connect();
+      this.cq = q;
+      if (!queue) return q; // this is the pull model
+      // push model
+      for(;;) {
+        let messages = await this._dequeue(queue);
+        for(let i=0; i<messages.length; i++) {
+          let message = messages[i];
+          let handle = message.handle;
+          let msg = message.msg;
+          await messageHandler(msg).then(async() => {
+            await this._remove(queue, handle);
+          }).catch(err => {
+            this.log.error(err);
+          });
+        }
+      }
     }
 
-    _enqueue(queue, message) {
+    async _enqueue(queue, message) {
       // a uuid for the message
       let uuid = shortid.generate();
-
-      return Promise.resolve()
-        .then(() => {
-          if (!this.pq) return this._producer_connect();
-        })
-        .then(() => {
-          // write the message
-          return this.pq.set(mKey(queue, uuid), JSON.stringify(message));
-        })
-        .then(() => {
-          // conditionally apply a ttl to the message
-          if (this.options.expire)
-            return this.pq.expire(mKey(queue, uuid), this.options.expire);
-        })
-        .then(() => {
-          // put the uuid (message pointer) into a sorted list (the queue)
-          return this.pq.lPush(qKey(queue), mKey(queue, uuid));
-        })
-        .then(() => {
-          // conditionally apply a ttl to the queue
-          if (this.options.expire)
-            return this.pq.expire(qKey(queue), this.options.expire);
-        });
+      if (!this.pq) await this._producer_connect();
+      // write the message
+      await this.pq.set(mKey(queue, uuid), JSON.stringify(message));
+      // conditionally apply a ttl to the message
+      if (this.options.expire)
+        await this.pq.expire(mKey(queue, uuid), this.options.expire);
+      // put the uuid (message pointer) into a sorted list (the queue)
+      await this.pq.lpush(qKey(queue), mKey(queue, uuid));
+      // conditionally apply a ttl to the queue
+      if (this.options.expire)
+        await this.pq.expire(qKey(queue), this.options.expire);
     }
 
     async _dequeue(queue, max) {
@@ -120,12 +79,12 @@ module.exports = function (config) {
       let messages = [];
       max = max || this.options.maxNumberOfMessages;
       for (let i = 0; i < max; i++) {
-        let uid = await this.cq.rPop(qKey(queue));
+        let uid = await this.cq.rpop(qKey(queue));
         if (uid) uids.push(uid);
         else break;
       }
       if (!uids.length) {
-        await Promise.delay(this.options.waitTimeSeconds * 1000);
+        await this.delay(this.options.waitTimeSeconds * 1000);
         return [];
       }
       for (let i = 0; i < uids.length; i++) {
@@ -140,19 +99,14 @@ module.exports = function (config) {
       });
     }
 
-    _remove() {
+    async _remove() {
       // there is no remove in redis
-      return Promise.resolve();
+      return;
     }
 
-    _consumer_length(queue) {
-      return Promise.resolve()
-        .then(() => {
-          if (!this.cq) return this._consumer_connect();
-        })
-        .then(() => {
-          return this.cq.lLen(qKey(queue));
-        });
+    async _consumer_length(queue) {
+      if (!this.cq) await this._consumer_connect();
+      return this.cq.llen(qKey(queue));
     }
   }
 
